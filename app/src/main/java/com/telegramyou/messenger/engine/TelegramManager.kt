@@ -50,7 +50,30 @@ class TelegramManager(private val context: Context) : Client.ResultHandler {
 
             TdApi.UpdateNewChat.CONSTRUCTOR -> {
                 val chat = (result as TdApi.UpdateNewChat).chat
+
+                Log.d(
+                    "TDLIB",
+                    "New chat '${chat.title}', lastMessage=${chat.lastMessage}"
+                )
+
                 _chats.value = _chats.value + (chat.id to chat)
+            }
+
+            TdApi.UpdateChatLastMessage.CONSTRUCTOR -> {
+                val update = result as TdApi.UpdateChatLastMessage
+
+                Log.d(
+                    "TDLIB",
+                    "UpdateChatLastMessage: chat=${update.chatId}"
+                )
+
+                val chat = _chats.value[update.chatId]
+
+                if (chat != null) {
+                    chat.lastMessage = update.lastMessage
+
+                    _chats.value = _chats.value + (chat.id to chat)
+                }
             }
 
             TdApi.UpdateFile.CONSTRUCTOR -> {
