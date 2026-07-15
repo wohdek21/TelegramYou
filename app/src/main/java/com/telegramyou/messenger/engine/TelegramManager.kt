@@ -33,8 +33,8 @@ class TelegramManager(private val context: Context) : Client.ResultHandler {
     val downloadedFiles: StateFlow<Map<Int, String>> = _downloadedFiles.asStateFlow()
 
     // TODO: REPLACE WITH YOUR ACTUAL API ID AND HASH BEFORE RUNNING LOCALLY
-    private val apiId   = 0
-    private val apiHash = "YOUR_API_HASH"
+    private val apiId   = 34130445
+    private val apiHash = "bba4d6bd278c3597ad4e18760f242077"
 
     fun initClient() {
         Client.execute(TdApi.SetLogVerbosityLevel(0))
@@ -42,6 +42,10 @@ class TelegramManager(private val context: Context) : Client.ResultHandler {
     }
 
     override fun onResult(result: TdApi.Object) {
+        Log.d(
+            "TDLIB",
+            "Result: ${result.javaClass.simpleName} (${result.constructor})"
+        )
         when (result.constructor) {
             TdApi.UpdateAuthorizationState.CONSTRUCTOR -> {
                 val update = result as TdApi.UpdateAuthorizationState
@@ -95,7 +99,7 @@ class TelegramManager(private val context: Context) : Client.ResultHandler {
         when (state.constructor) {
             TdApi.AuthorizationStateWaitTdlibParameters.CONSTRUCTOR -> {
                 val request = TdApi.SetTdlibParameters(
-                    false,
+                    true,
                     context.filesDir.absolutePath + "/tdlib",
                     null,
                     null,
