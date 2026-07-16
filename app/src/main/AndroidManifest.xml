@@ -23,11 +23,6 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
-                <action android:name="android.intent.action.SEND" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <!-- Tells the OS this app communicates text and images -->
-                <data android:mimeType="text/plain" />
-                <data android:mimeType="image/*" />
             </intent-filter>
         </activity>
     </application>
