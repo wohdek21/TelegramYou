@@ -1,3 +1,3 @@
-• Telegram You
+• Telegram You💥
 
-some info be here soon...
+A telegram fork that implements Material Design 3 UI to your locly massenger🤯
