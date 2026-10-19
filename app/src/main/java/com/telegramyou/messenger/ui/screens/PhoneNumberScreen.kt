@@ -24,8 +24,8 @@ fun PhoneNumberScreen(
     var phoneNumber by remember { mutableStateOf("") }
 
     AuthScreenLayout(
-        title = "Добро пожаловать",
-        description = "Введите номер телефона, чтобы войти в TelegramYou."
+        title = "Добро пожаловать :3",
+        description = "Введите номер телефона, чтобы войти в Telegram You."
     ) {
         OutlinedTextField(
             value = countryCode,
