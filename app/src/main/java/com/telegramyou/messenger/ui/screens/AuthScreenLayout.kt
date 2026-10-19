@@ -2,7 +2,6 @@
 package com.telegramyou.messenger.ui.screens
 
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -28,6 +27,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -35,21 +38,20 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun AuthDecorativeBackground() {
-    val transition = rememberInfiniteTransition(label = "M3 background")
+    val transition = rememberInfiniteTransition()
 
-    val rotation by transition.animateFloat(
+    val rotation = transition.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = infiniteRepeatable(
             animation = tween(
                 durationMillis = 36000,
                 easing = LinearEasing
-            ),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "Shape rotation"
+            )
+        )
     )
 
+    val rotationValue = rotation.value
     val colors = MaterialTheme.colorScheme
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -58,10 +60,12 @@ fun AuthDecorativeBackground() {
                 .align(Alignment.TopStart)
                 .offset(x = (-42).dp, y = 55.dp)
                 .size(175.dp)
-                .graphicsLayer { rotationZ = rotation }
+                .graphicsLayer {
+                    rotationZ = rotationValue
+                }
                 .background(
-                    colors.primaryContainer.copy(alpha = 0.55f),
-                    CircleShape
+                    color = colors.primaryContainer.copy(alpha = 0.55f),
+                    shape = CircleShape
                 )
         )
 
@@ -70,10 +74,12 @@ fun AuthDecorativeBackground() {
                 .align(Alignment.TopEnd)
                 .offset(x = 45.dp, y = 175.dp)
                 .size(135.dp)
-                .graphicsLayer { rotationZ = -rotation * 0.7f }
+                .graphicsLayer {
+                    rotationZ = -rotationValue * 0.7f
+                }
                 .background(
-                    colors.tertiaryContainer.copy(alpha = 0.48f),
-                    RoundedCornerShape(42.dp)
+                    color = colors.tertiaryContainer.copy(alpha = 0.48f),
+                    shape = RoundedCornerShape(42.dp)
                 )
         )
 
@@ -82,10 +88,12 @@ fun AuthDecorativeBackground() {
                 .align(Alignment.BottomStart)
                 .offset(x = 30.dp, y = 65.dp)
                 .size(115.dp)
-                .graphicsLayer { rotationZ = rotation * 0.55f }
+                .graphicsLayer {
+                    rotationZ = rotationValue * 0.55f
+                }
                 .background(
-                    colors.secondaryContainer.copy(alpha = 0.55f),
-                    RoundedCornerShape(36.dp)
+                    color = colors.secondaryContainer.copy(alpha = 0.55f),
+                    shape = RoundedCornerShape(36.dp)
                 )
         )
 
@@ -94,10 +102,12 @@ fun AuthDecorativeBackground() {
                 .align(Alignment.BottomEnd)
                 .offset(x = 48.dp, y = 38.dp)
                 .size(175.dp)
-                .graphicsLayer { rotationZ = -rotation }
+                .graphicsLayer {
+                    rotationZ = -rotationValue
+                }
                 .background(
-                    colors.primaryContainer.copy(alpha = 0.45f),
-                    CircleShape
+                    color = colors.primaryContainer.copy(alpha = 0.45f),
+                    shape = CircleShape
                 )
         )
     }
@@ -116,7 +126,10 @@ fun AuthScreenLayout(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 32.dp),
+                .padding(
+                    horizontal = 24.dp,
+                    vertical = 32.dp
+                ),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
