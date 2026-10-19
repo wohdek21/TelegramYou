@@ -1,20 +1,29 @@
+
 package com.telegramyou.messenger
 
+import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.Crossfade
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.unit.dp
 import org.drinkless.tdlib.TdApi
 import com.telegramyou.messenger.engine.TelegramManager
+import com.telegramyou.messenger.ui.screens.AuthLoadingScreen
+import com.telegramyou.messenger.ui.screens.PasswordScreen
+import com.telegramyou.messenger.ui.screens.PhoneNumberScreen
+import com.telegramyou.messenger.ui.screens.VerificationCodeScreen
 import com.telegramyou.messenger.ui.screens.ChatListScreen
 
 class MainActivity : ComponentActivity() {
@@ -28,16 +37,32 @@ class MainActivity : ComponentActivity() {
         telegramManager.initClient()
 
         setContent {
-            MaterialTheme(
-                colorScheme = darkColorScheme()
-            ) {
+            val isDark = isSystemInDarkTheme()
+
+            val colorScheme = when {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+                    if (isDark) {
+                        dynamicDarkColorScheme(this@MainActivity)
+                    } else {
+                        dynamicLightColorScheme(this@MainActivity)
+                    }
+                }
+
+                isDark -> darkColorScheme()
+                else -> lightColorScheme()
+            }
+
+            MaterialTheme(colorScheme = colorScheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val authState by telegramManager.authState.collectAsState()
 
-                    Crossfade(targetState = authState, label = "Auth Transition") { state ->
+                    Crossfade(
+                        targetState = authState,
+                        label = "Auth Transition"
+                    ) { state ->
                         AuthRouter(state, telegramManager)
                     }
                 }
@@ -47,121 +72,41 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun AuthRouter(authState: TdApi.AuthorizationState?, manager: TelegramManager) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        when (authState?.constructor) {
-            TdApi.AuthorizationStateWaitPhoneNumber.CONSTRUCTOR -> {
-                var phoneNumber by remember { mutableStateOf("") }
-                    var countrycode by remember { mutableStateOf("")}
-
-                Text("Войти в аккаунт Telegram", style = MaterialTheme.typography.headlineMedium)
-                Spacer(modifier = Modifier.height(24.dp))
-                OutlinedTextField(
-                    value = countrycode,
-                    onValueChange = { countrycode = it },
-                    label = { Text("Код страны") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = phoneNumber,
-                    onValueChange = { phoneNumber = it },
-                    label = { Text("Номер телефона") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Button(
-                    onClick = { manager.sendPhoneNumber(countrycode + phoneNumber)
-                            Log.d("TelegramYou", "sendCodePressed")},
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = phoneNumber.isNotBlank()
-                ) {
-                    Text("Отправить код")
+fun AuthRouter(
+    authState: TdApi.AuthorizationState?,
+    manager: TelegramManager
+) {
+    when (authState?.constructor) {
+        TdApi.AuthorizationStateWaitPhoneNumber.CONSTRUCTOR -> {
+            PhoneNumberScreen(
+                onSubmit = { countryCode, phoneNumber ->
+                    manager.sendPhoneNumber(countryCode + phoneNumber)
                 }
-            }
+            )
+        }
 
-            TdApi.AuthorizationStateWaitCode.CONSTRUCTOR -> {
-                var code by remember { mutableStateOf("") }
-                Log.d("TelegramYou", "CodePage")
-                Text("Введите код", style = MaterialTheme.typography.headlineMedium)
-                Text(
-                    text = "Мы отправили вам код верификации в Telegram",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-
-                OutlinedTextField(
-                    value = code,
-                    onValueChange = { code = it },
-                    label = { Text("Код верификации") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Button(
-                    onClick = { manager.sendVerificationCode(code) },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = code.isNotBlank()
-                ) {
-                    Text("Войти")
+        TdApi.AuthorizationStateWaitCode.CONSTRUCTOR -> {
+            VerificationCodeScreen(
+                onSubmit = { code ->
+                    manager.sendVerificationCode(code)
                 }
-            }
+            )
+        }
 
-            TdApi.AuthorizationStateWaitPassword.CONSTRUCTOR -> {
-                var password by remember { mutableStateOf("") }
-
-                Text("Двухфакторная аутентификация", style = MaterialTheme.typography.headlineMedium)
-                Text(
-                    text = "Ваш аккаунт защищен дополнительным паролем.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    label = { Text("Введите пароль") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Button(
-                    onClick = { manager.sendPassword(password) },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = password.isNotBlank()
-                ) {
-                    Text("Отправить")
+        TdApi.AuthorizationStateWaitPassword.CONSTRUCTOR -> {
+            PasswordScreen(
+                onSubmit = { password ->
+                    manager.sendPassword(password)
                 }
-            }
+            )
+        }
 
-            TdApi.AuthorizationStateReady.CONSTRUCTOR -> {
-                // Pointing directly to the Chat List
-                ChatListScreen(manager)
-            }
+        TdApi.AuthorizationStateReady.CONSTRUCTOR -> {
+            ChatListScreen(manager)
+        }
 
-            else -> {
-                CircularProgressIndicator()
-                Spacer(modifier = Modifier.height(16.dp))
-                Text("Загружаем движок датабазы...", style = MaterialTheme.typography.bodyMedium)
-            }
+        else -> {
+            AuthLoadingScreen()
         }
     }
 }
