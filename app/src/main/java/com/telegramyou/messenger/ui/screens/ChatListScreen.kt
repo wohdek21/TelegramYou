@@ -17,41 +17,59 @@ import com.telegramyou.messenger.ui.components.ChatListItem
 fun ChatListScreen(manager: TelegramManager) {
     val chatIds by manager.chatIds.collectAsState()
     val chats by manager.chats.collectAsState()
+    val selectedChatId by manager.selectedChatId.collectAsState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Chats", style = MaterialTheme.typography.titleLarge) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                ),
-                actions = {
-                    IconButton(onClick = { manager.logout() }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                            contentDescription = "Logout",
-                            tint = MaterialTheme.colorScheme.error
-                        )
+    val activeChatId = selectedChatId
+    if (activeChatId != null) {
+        ChatScreen(
+            manager = manager,
+            chatId = activeChatId,
+            title = chats[activeChatId]?.title ?: "Чат",
+            onBack = { manager.closeChat(activeChatId) }
+        )
+    } else {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("Chats", style = MaterialTheme.typography.titleLarge) },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    ),
+                    actions = {
+                        IconButton(onClick = { manager.logout() }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                                contentDescription = "Logout",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
                     }
-                }
-            )
-        }
-    ) { paddingValues ->
-        if (chatIds.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+                )
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-            ) {
-                items(chatIds) { id ->
-                    val chat = chats[id]
-                    if (chat != null) {
-                        ChatListItem(chat = chat, manager = manager)
+        ) { paddingValues ->
+            if (chatIds.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                ) {
+                    items(chatIds) { id ->
+                        val chat = chats[id]
+                        if (chat != null) {
+                            ChatListItem(
+                                chat = chat,
+                                manager = manager,
+                                onClick = { manager.openChat(id) }
+                            )
+                        }
                     }
                 }
             }
