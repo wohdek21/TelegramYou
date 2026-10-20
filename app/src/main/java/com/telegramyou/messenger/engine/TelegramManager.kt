@@ -117,7 +117,7 @@ class TelegramManager(private val context: Context) : Client.ResultHandler {
         when (state.constructor) {
             TdApi.AuthorizationStateWaitTdlibParameters.CONSTRUCTOR -> {
                 val request = TdApi.SetTdlibParameters(
-                    true,
+                    false,
                     context.filesDir.absolutePath + "/tdlib",
                     null,
                     null,
