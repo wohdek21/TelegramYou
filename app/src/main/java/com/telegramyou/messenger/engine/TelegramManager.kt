@@ -68,6 +68,7 @@ class TelegramManager(private val context: Context) : Client.ResultHandler {
                 )
 
                 _chats.value = _chats.value + (chat.id to chat)
+                if (chat.id !in _chatIds.value) _chatIds.value = _chatIds.value + chat.id
             }
 
             TdApi.UpdateChatLastMessage.CONSTRUCTOR -> {
