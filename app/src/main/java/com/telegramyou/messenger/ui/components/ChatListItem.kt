@@ -1,6 +1,7 @@
 package com.telegramyou.messenger.ui.components
 
 import android.util.Log
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
@@ -57,13 +58,14 @@ fun TdApi.Message?.previewText(): String {
     }
 }
 @Composable
-fun ChatListItem(chat: TdApi.Chat, manager: TelegramManager) {
+fun ChatListItem(chat: TdApi.Chat, manager: TelegramManager, onClick: () -> Unit) {
     // Observe the downloaded files map
     val downloadedFiles by manager.downloadedFiles.collectAsState()
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
