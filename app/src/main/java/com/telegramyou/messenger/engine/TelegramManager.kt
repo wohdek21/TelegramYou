@@ -203,7 +203,7 @@ class TelegramManager(private val context: Context) : Client.ResultHandler {
         if (cleanText.isEmpty() || chatId in _sendingChatIds.value) return
         _sendingChatIds.value = _sendingChatIds.value + chatId
         val content = TdApi.InputMessageText(TdApi.FormattedText(cleanText, null), null, true)
-        client?.send(TdApi.SendMessage(chatId, 0L, null, null, null, content)) { result ->
+        client?.send(TdApi.SendMessage(chatId, null, null, null, null, content)) { result ->
             _sendingChatIds.value = _sendingChatIds.value - chatId
             if (result.constructor == TdApi.Message.CONSTRUCTOR) {
                 addOrReplaceMessage(result as TdApi.Message)
