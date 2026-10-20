@@ -32,6 +32,13 @@ class TelegramManager(private val context: Context) : Client.ResultHandler {
     private val _downloadedFiles = MutableStateFlow<Map<Int, String>>(emptyMap())
     val downloadedFiles: StateFlow<Map<Int, String>> = _downloadedFiles.asStateFlow()
 
+    private val _messages = MutableStateFlow<Map<Long, List<TdApi.Message>>>(emptyMap())
+    val messages: StateFlow<Map<Long, List<TdApi.Message>>> = _messages.asStateFlow()
+    private val _selectedChatId = MutableStateFlow<Long?>(null)
+    val selectedChatId: StateFlow<Long?> = _selectedChatId.asStateFlow()
+    private val _sendingChatIds = MutableStateFlow<Set<Long>>(emptySet())
+    val sendingChatIds: StateFlow<Set<Long>> = _sendingChatIds.asStateFlow()
+
     // TODO: REPLACE WITH YOUR ACTUAL API ID AND HASH BEFORE RUNNING LOCALLY
     private val apiId   = 34130445
     private val apiHash = "bba4d6bd278c3597ad4e18760f242077"
@@ -76,6 +83,16 @@ class TelegramManager(private val context: Context) : Client.ResultHandler {
                 if (chat != null) {
                     chat.lastMessage = update.lastMessage
 
+                    _chats.value = _chats.value + (chat.id to chat)
+                }
+            }
+
+            TdApi.UpdateNewMessage.CONSTRUCTOR -> {
+                val message = (result as TdApi.UpdateNewMessage).message
+                addOrReplaceMessage(message)
+                val chat = _chats.value[message.chatId]
+                if (chat != null) {
+                    chat.lastMessage = message
                     _chats.value = _chats.value + (chat.id to chat)
                 }
             }
@@ -154,6 +171,55 @@ class TelegramManager(private val context: Context) : Client.ResultHandler {
         client?.send(TdApi.DownloadFile(fileId, 1, 0, 0, true)) {}
     }
 
+    fun openChat(chatId: Long) {
+        _selectedChatId.value = chatId
+        client?.send(TdApi.OpenChat(chatId)) { result ->
+            if (result.constructor == TdApi.Error.CONSTRUCTOR) {
+                Log.e("TDLIB", "OpenChat failed: ${(result as TdApi.Error).message}")
+            }
+        }
+        loadChatHistory(chatId)
+    }
+
+    fun closeChat(chatId: Long) {
+        client?.send(TdApi.CloseChat(chatId)) {}
+        if (_selectedChatId.value == chatId) _selectedChatId.value = null
+    }
+
+    fun loadChatHistory(chatId: Long, fromMessageId: Long = 0L, limit: Int = 50) {
+        client?.send(TdApi.GetChatHistory(chatId, fromMessageId, 0, limit, false)) { result ->
+            if (result.constructor == TdApi.Messages.CONSTRUCTOR) {
+                val loaded = (result as TdApi.Messages).messages.toList().reversed()
+                _messages.value = _messages.value + (chatId to mergeMessages(_messages.value[chatId].orEmpty(), loaded))
+            } else if (result.constructor == TdApi.Error.CONSTRUCTOR) {
+                Log.e("TDLIB", "GetChatHistory failed: ${(result as TdApi.Error).message}")
+            }
+        }
+    }
+
+    fun sendTextMessage(chatId: Long, text: String) {
+        val cleanText = text.trim()
+        if (cleanText.isEmpty() || chatId in _sendingChatIds.value) return
+        _sendingChatIds.value = _sendingChatIds.value + chatId
+        val content = TdApi.InputMessageText(TdApi.FormattedText(cleanText, null), null, true)
+        client?.send(TdApi.SendMessage(chatId, 0L, null, null, null, content)) { result ->
+            _sendingChatIds.value = _sendingChatIds.value - chatId
+            if (result.constructor == TdApi.Message.CONSTRUCTOR) {
+                addOrReplaceMessage(result as TdApi.Message)
+            } else if (result.constructor == TdApi.Error.CONSTRUCTOR) {
+                Log.e("TDLIB", "SendMessage failed: ${(result as TdApi.Error).message}")
+            }
+        } ?: run { _sendingChatIds.value = _sendingChatIds.value - chatId }
+    }
+
+    private fun addOrReplaceMessage(message: TdApi.Message) {
+        val current = _messages.value[message.chatId].orEmpty()
+        _messages.value = _messages.value + (message.chatId to mergeMessages(current, listOf(message)))
+    }
+
+    private fun mergeMessages(old: List<TdApi.Message>, new: List<TdApi.Message>): List<TdApi.Message> =
+        (old + new).distinctBy { it.id }.sortedBy { it.date }
+
     private fun loadChats() {
         client?.send(TdApi.LoadChats(TdApi.ChatListMain(), 100)) { result ->
             when (result.constructor) {
@@ -167,7 +233,18 @@ class TelegramManager(private val context: Context) : Client.ResultHandler {
     private fun getChatIds() {
         client?.send(TdApi.GetChats(TdApi.ChatListMain(), 100)) { result ->
             if (result.constructor == TdApi.Chats.CONSTRUCTOR) {
-                _chatIds.value = (result as TdApi.Chats).chatIds.toList()
+                val ids = (result as TdApi.Chats).chatIds.toList()
+                _chatIds.value = ids
+                ids.forEach { id ->
+                    if (_chats.value[id] == null) {
+                        client?.send(TdApi.GetChat(id)) { chatResult ->
+                            if (chatResult.constructor == TdApi.Chat.CONSTRUCTOR) {
+                                val chat = chatResult as TdApi.Chat
+                                _chats.value = _chats.value + (chat.id to chat)
+                            }
+                        }
+                    }
+                }
             }
         }
     }
